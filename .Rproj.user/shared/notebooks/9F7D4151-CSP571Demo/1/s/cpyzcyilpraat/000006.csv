@@ -1,0 +1,3 @@
+"0","# Load the Boston sample dataset into R using a dataframe"
+"0","Boston <- data.frame(Boston)"
+"0","head(Boston)"

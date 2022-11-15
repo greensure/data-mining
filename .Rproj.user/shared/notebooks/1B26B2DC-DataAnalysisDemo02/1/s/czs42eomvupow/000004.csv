@@ -1,0 +1,13 @@
+"0","# AUC"
+"0","auc <- auc(testAbalone$Sex, predTemp)"
+"2","Setting levels: control = F, case = M
+"
+"2","Setting direction: controls < cases
+"
+"0","cat(""AUC ="", auc, ""\n"")"
+"1","AUC ="
+"1"," "
+"1","0.5591229"
+"1"," "
+"1","
+"

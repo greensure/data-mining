@@ -1,0 +1,6 @@
+"0","# Create a boxplot of each of the 4 features"
+"0","# boxplot(iris, xlab = ""Attributes"", ylab = ""Values"", main = ""Iris"")"
+"0","ggplot(data=stack(iris), mapping = aes(x=ind, y = values)) + geom_boxplot()"
+"2","Warning in stack.data.frame(iris) :"
+"2"," non-vector columns will be ignored
+"

@@ -1,0 +1,6 @@
+"0","# Mean when NA = median"
+"0","cat(""Mean when NA = median is"", mean(horse_NA_median))"
+"1","Mean when NA = median is"
+"1"," "
+"1","104.304"
+"0","# How does this affec the value obtained for the mean vs the original mean when the records were ignored?"

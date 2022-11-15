@@ -1,0 +1,4 @@
+"0","par(mfrow=c(2,2))"
+"0",""
+"0","# Use the ggplot2 library from CRAN to create a colored boxplot for each feature, with a box-whisker per flower species."
+"0","ggplot(data = iris) + geom_boxplot(mapping = aes(x = Species, y = Petal.Length, color = Species))"

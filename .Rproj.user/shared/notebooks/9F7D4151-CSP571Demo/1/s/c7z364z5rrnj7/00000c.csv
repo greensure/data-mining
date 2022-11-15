@@ -1,0 +1,2 @@
+"0",""
+"0","ggplot(trees, aes(x = Volume)) + geom_histogram(color = ""black"", fill = ""green"", binwidth = 3)"

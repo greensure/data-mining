@@ -1,0 +1,8 @@
+"0","# Based on 96 + 215 = 311 correct classifications and 91 + 166 = 257 misclassifications."
+"0","# the misclassifications error rate "
+"0","misclassifications <- 1 - sum(diag(tab1))/sum(tab1)"
+"0","misclassifications"
+"1","[1]"
+"1"," 0.4401408"
+"1","
+"

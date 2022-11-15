@@ -1,0 +1,160 @@
+---
+title: "Exploratory Data Analysis"
+author: "Lilian"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+  html_document:
+    toc: yes
+    df_print: paged
+---
+
+
+# Clean Environment & Load Libraries
+
+```{r}
+# Clean environment
+rm(list=ls())
+
+# getwd()
+
+# Set the new working Directory
+setwd("D:/WorkSpace/RWorkSpace/HWDemo")
+
+# Load libraries
+library(dplyr)
+library(psych)
+
+```
+
+# Load Data
+```{r}
+# Load Data
+# Read the dataset into a R dataframe; call the dataframe ‘data.df’
+# row.names = 1 will show the colomns' names
+# When reading the dataset, ignore the lines that contain comments. 
+data.df <- read.csv("us-covid.csv", header = TRUE, row.names = 1, sep = ",", comment.char = "#")
+
+class(data.df)
+
+View(data.df)
+```
+
+### Part2.1 (ii) 
+
+```{r}
+# Drop the last column of the dataset has many “N/A” values
+data.df <- subset(data.df, select = -c(confirmed_deaths))
+
+View(data.df)
+
+```
+
+### Part2.1 (iii) (a)
+
+(a) Sort the dataframe by descending order of total cases, then print the top six entries.
+```{r}
+data.df <- data.df %>% arrange(desc(total_cases))
+# View(data.df)
+top_n(data.df, 6)
+
+```
+
+### Part2.1 (iii) (b)
+```{r}
+# (b) Sort the dataframe by descending order of total cases, then print the bottom six entries
+# data.df <- data.df %>% arrange(desc(total_cases))
+top_n(data.df, -6)
+```
+
+### Part2.1 (iv) 
+```{r}
+# Note that the first two columns can be excluded from correlation analysis
+data.df <- subset(data.df, select = c(total_cases, 
+                                      confirmed, 
+                                      probable, 
+                                      cases_last_7_days, 
+                                      case_rate_per_100K, 
+                                      total_deaths))
+# View(data.df)
+
+pairs.panels(data.df)
+             
+```
+
+### Part2.1 (iv) (a)
+
+(a) Why should we exclude the first two columns from correlation analysis?
+
+My answer: 
+
+In statistics, correlation is any statistical relationship, whether causal or not, between two random variables or bivariate data. In the broadest sense correlation is any statistical association, though it actually refers to the degree to which a pair of variables are linearly related. Apparently, the first two columns are not linearly related each other. 
+
+### Part2.1 (iv) (b)
+
+(b) Which pair of columns have the highest correlation? 
+
+My answer:
+
+According to the correlation plot, The correlation coefficient of total_cases and total_deaths is about 0.98. It's close to 1. So the columns of total_cases and total_deaths have the highest correlation. 
+
+### Part2.1 (iv) (c)
+(c) Which pair of columns has the lowest correlation?
+
+My answer:
+ 
+According to the correlation plot, the correlation coefficient of columns of case_rate_per_100K and cases_last_7_days is 0. So columns of case_rate_per_100K and cases_last_7_days have the lowest correlation.
+
+
+
+### Part2.1 (v) (a)
+
+(a) Draw a plot of confirmed+probable cases (on the X-axis) against the total deaths (on the Y-axis). Label the plot appropriately.
+
+```{r}
+# data.df <- data.df[which(rowSums(data.df==0)==0),]
+
+# Total cases = confirmed + probable
+x <- data.df$total_cases
+y <- data.df$total_deaths
+
+# Create a plot
+plot(x, y, main="confirmed+probable cases against the total deaths", xlab="Confirmed Probable Cases", ylab="Total Deaths", pch=19)
+
+abline(lm(y ~ x, data = data.df), col = "blue")
+```
+
+### Part2.1 (v) (b)
+
+My answer:
+
+There're two points which total deaths are close to 80000. Their total deaths are close to each other. According to the linear relationship of total deaths and total cases in this model, if total cases(comfirmed probale cases) are much higher, the total deaths would increasing largely. And we could see the difference of comfirmed probale case of the two points is a little large. So it's unreasonable the total deaths of two very different points are close to each other on total deaths. Besides, one of the points is a little far from the blue line and it's under the blue line. Its fitting is not good. So it can be an anomaly.
+
+### Part2.1 (v) (c)
+
+```{r}
+# summary(data.df)
+
+sp=boxplot(y,boxwex=0.7)
+title("total deaths")
+xi=1.1
+sd.s=sd(data.df[complete.cases(data.df),]$y)
+mn.s=mean(data.df[complete.cases(data.df),]$y)
+points(xi,mn.s,col="red",pch=18)
+arrows(xi, mn.s - sd.s, xi, mn.s + sd.s, code = 3, col = "pink", angle = 75, length = .1)
+text(rep(c(1.05,1.05,0.95,0.95),length=length(sp$out)),labels=sp$out[order(sp$out)],
+     sp$out[order(sp$out)]+rep(c(150,-150,150,-150),length=length(sp$out)),col="red")
+```
+
+```{r}
+# We get that the anomaly's value on y-axis is 78118
+# The index of record is :
+index <- which(data.df$total_deaths == 78118)
+data.df[index,]
+
+print("The state name is California, total deaths is 78118, confirmed cases is 7482469, probable cases is 446967, total cases is 7929436. ")
+```
+My answer：
+
+The state name is California, total deaths is 78118, confirmed cases is 7482469, probable cases is 446967, total cases is 7929436.

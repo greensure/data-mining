@@ -1,0 +1,3 @@
+"0","# Create a histogram of each variable "
+"0","# which variables appear to be normally distributed based on visual inspection?"
+"0","ggplot(trees, aes(x = Girth)) + geom_histogram(color = ""black"", fill = ""grey"", binwidth = 1)"

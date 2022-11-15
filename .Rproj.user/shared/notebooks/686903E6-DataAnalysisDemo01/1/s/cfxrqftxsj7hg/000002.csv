@@ -1,0 +1,3 @@
+"0","# Load the trees sample dataset into R and produce a 5-number summary of each feature"
+"0","trees = data.frame(trees)"
+"0","trees"

@@ -1,0 +1,7 @@
+"0","# prediction"
+"0","f.pred <- prediction(predTemp, testAbalone$Sex)"
+"0",""
+"0","# performance"
+"0","f.perf <- performance(f.pred, ""tpr"", ""fpr"")"
+"0",""
+"0","plot(f.perf, colorize=T, lwd=3)"

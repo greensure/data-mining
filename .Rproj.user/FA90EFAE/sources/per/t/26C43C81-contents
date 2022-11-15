@@ -1,0 +1,540 @@
+---
+title: "Data Analysis Practice 02 | R Programming | 2022 Fall"
+author: "Lilian"
+output:
+  pdf_document:
+    toc: yes
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+
+# Clean environment & Load Libraries
+```{r}
+# Clean environment
+rm(list=ls())
+
+# Set the working Directory
+setwd("D:/WorkSpace/RWorkSpace/HWDemo")
+
+# Load libraries
+library(caret)
+library(corrplot)
+library(pROC)
+library(e1071)
+# library(dplyr)
+library(ROCR)
+```
+
+# 2.1 Data analysis based on the abalone sample dataset
+## Load Data
+```{r}
+# Load the abalone sample dataset from the UCI Machine Learning Repository
+abaloneUrl <- "https://archive.ics.uci.edu/ml/machine-learning-databases/abalone/abalone.data"
+
+abalone <- read.csv(abaloneUrl,
+                    header = F,
+                    sep = ",",
+                    stringsAsFactors = TRUE,
+                    # Is there an easy way to read names by programming? Not manual input
+                    col.names = c('Sex', 'Length', 'Diameter', 'Height', 'Whole weight', 'Shucked weight', 'Viscera weight', 'Shell weight', 'Rings'))
+
+str(abalone)
+
+head(abalone)
+```
+## Check classes
+```{r}
+# Check classes
+xtabs(~Sex, data = abalone)
+```
+
+## Data processing
+```{r}
+# 1. Remove all observations in the Infant category, keeping the Male/Female classes.
+df.NoInfant <- subset(abalone, Sex != 'I')
+
+df.NoInfant$Sex <- factor(df.NoInfant$Sex)
+
+# 2. Data Partition: Using the caret package, use createDataPartition to perform an 80/20 test-train split
+set.seed(1)
+
+index <- createDataPartition(df.NoInfant$Sex, p = 0.2, list = FALSE)
+
+testAbalone <- df.NoInfant[index,]
+trainAbalone <- df.NoInfant[-index,]
+```
+
+```{r}
+# Logistic regression R model
+# Fit a logistic regression using all feature variables via glm, and observe which predictors are relevant
+# glm indicates generalized linear model and family is binomial because Sex has only F, M
+modelLogisticReg <- glm(Sex ~ ., data = trainAbalone, family = binomial)
+
+summary(modelLogisticReg)
+
+# For P value, more stars indicate more statistical significance.
+# According to the output, Shucked.weight, Diameter is statistically significant
+```
+
+```{r}
+confint(modelLogisticReg)
+```
+
+
+Fit a logistic regression using all feature variables via glm, and observe which predictors are relevant?
+
+The predictors with low p-value (< 0.05) are significant to reject the null hypothesis. 'Diameter', 'Shucked.weight' are relevant. 
+
+
+Do the confidence intervals for the predictors contain 0 within the range? How does this relate to the null hypothesis?
+
+The confidence intervals for some predictors like 'Length', 'Whole.weight', 'Viscera.weight', 'Shell.weight' contain 0 with the range. According to the output, we see the confidence intervals for relevant predictors do not contain 0 within the range. If our confidence interval does not contain the value claimed by the null hypothesis, then our sample result is different enough from the claimed value, and we therefore reject H0. We have 95% confidence the relevant predictors reject null hypothesis.
+
+## Predict
+```{r}
+predTemp <- predict(modelLogisticReg, testAbalone, type = "response")
+head(predTemp)
+```
+
+```{r}
+pred <- ifelse(predTemp >= 0.5, 'M', 'F')
+# pred <- ifelse(predTemp >= 0.5, 'M', 'F', type="response")
+# pred
+tab1 <- table(Predicted = pred, Actual = testAbalone$Sex)
+tab1
+```
+## misclassifications
+```{r}
+# Based on 96 + 215 = 311 correct classifications and 91 + 166 = 257 misclassifications.
+# the misclassifications error rate 
+misclassifications <- 1 - sum(diag(tab1))/sum(tab1)
+misclassifications
+```
+
+## confusionMatrix
+```{r}
+confusionMatrix(as.factor(pred), testAbalone$Sex)
+```
+## roc & AUC
+```{r}
+plot(roc(testAbalone$Sex, predTemp))
+
+# AUC
+auc <- auc(testAbalone$Sex, predTemp)
+cat("AUC =", auc, "\n")
+```
+## Prediction
+```{r}
+# prediction
+f.pred <- prediction(predTemp, testAbalone$Sex)
+
+# performance
+f.perf <- performance(f.pred, "tpr", "fpr")
+
+plot(f.perf, colorize=T, lwd=3)
+
+abline(0,1)
+```
+How does the accuracy compare to a random classifier ROC curve?
+
+
+Accuracy0.5599 is the general accuracy of the model. The accuracy is a bit low here. The low accuracy simply means that the model is performing worse. According to the output, we see the number of female abalone is 165, the number of male abalone is 221 here. The data is imbalanced in terms of the target classes. 
+
+Area under the curve is 0.5591. The area under the ROC curve (AUC) results were considered poor for AUC values between 0.6-0.7 and failed for AUC values between 0.5-0.6. AUC is around 0.55 means the classifier is not able to distinguish between Positive and Negative class points. 
+
+They both tell us the model perform worse. The first big difference is that we calculate accuracy on the predicted classes while we calculate ROC AUC on predicted scores. That means we will have to find the optimal threshold for the problem. Moreover, accuracy looks at fractions of correctly assigned positive and negative classes.
+
+
+```{r}
+temp <- corrplot.mixed(cor(df.NoInfant[,2:8]))
+temp
+
+```
+How does this help explain the classifier performance?
+
+The predictors in this model are highly correlated. Here multicollinearity occurs when two or more independent variables are highly correlated with one another in the regression model. The precision of the estimated regression coefficients decreases.
+
+### 2.2 Data analysis based on the mushroom sample dataset
+
+```{r}
+# Load the mushroom sample dataset from the UCI Machine Learning Repository (agaricus-lepiota.data) into R using a dataframe
+urlMushroom = "https://archive.ics.uci.edu/ml/machine-learning-databases/mushroom/agaricus-lepiota.data"
+
+mushroom <- read.csv(urlMushroom,
+                        header = FALSE,
+                        sep = ",",
+                        stringsAsFactors = TRUE)
+
+head(mushroom)
+```
+
+My steps to handle missing value：
+
+Step 1 Get the index of missing value; 
+Step 2 Find mode via table() function, according to the output, b is the mode;
+Step 3 Replace ? via mode which is 'b';
+
+The code comments show the detail that how I handle of missing values.
+
+```{r}
+# There are missing values with a ? character, you will have to explain your handling of these
+# No.12 stalk-surface-above-ring: fibrous=f, scaly=y, silky=k, smooth=s
+
+# Step 1 Get the index of missing value 
+valuesMissing <- which(mushroom$V12 == '?')
+mushroom_miss <- mushroom[-c(valuesMissing),]
+
+# Step 2 Find mode via table() function 
+# According to the output, b is the mode.
+mode <- (table(as.vector(mushroom_miss$V12)))
+
+# Step 3 Replace ? via mode which is 'b'
+mushroom_replace <- mushroom
+mushroom_replace$V12[valuesMissing] <- 'b'
+
+indexMiss <- sample(1:nrow(mushroom_miss),size=0.8*nrow(mushroom_miss))
+trainMiss <- mushroom[indexMiss,]
+testMiss <- mushroom[-indexMiss,]
+
+indexReplace <- sample(1:nrow(mushroom_replace),size=0.8*nrow(mushroom_replace))
+trainReplace <- mushroom[indexReplace,]
+testReplace <- mushroom[-indexReplace,]
+
+```
+
+```{r}
+# Trainning
+naiveBayesMiss <- naiveBayes(V1~., data=trainMiss)
+naiveBayesReplace <- naiveBayes(V1~., data=trainReplace)
+
+# Prediction
+pred_in_testMiss = predict(naiveBayesMiss, testMiss)
+pred_in_trainingMiss = predict(naiveBayesMiss, trainMiss)
+
+pred_in_testReplace = predict(naiveBayesReplace, testReplace)
+pred_in_trainingReplace = predict(naiveBayesReplace, trainReplace)
+
+```
+
+```{r}
+cat("-------- Here is the confusionMatrix output of pred_in_testMiss: -------- ", "\n")
+
+confusionMatrixOnTestMiss <- confusionMatrix(table(pred_in_testMiss, testMiss$V1, dnn=c("Predicted","Actual")))
+confusionMatrixOnTestMiss 
+
+cat("-------- Here is the confusionMatrix output of pred_in_trainingMiss: -------- ", "\n")
+
+confusionMatrixOnTrainMiss <- confusionMatrix(table(pred_in_trainingMiss, trainMiss$V1, dnn=c("Predicted","Actual")))
+confusionMatrixOnTrainMiss
+
+
+# Get the accuracy of the classifier both in-training and in-test
+accuracyOnTestMiss <- confusionMatrixOnTestMiss$overall[1]
+accuracyOnTrainMiss <- confusionMatrixOnTrainMiss$overall[1]
+
+```
+
+```{r}
+cat("======= Here is the confusionMatrix output of pred_in_testReplace: ======= ", "\n")
+confusionMatrixOnReplacedTest <- confusionMatrix(table(pred_in_testReplace, testReplace$V1, dnn=c("Predicted","Actual")))
+
+confusionMatrixOnReplacedTest
+
+
+cat("======= Here is the confusionMatrix output of pred_in_trainingReplace: ======= ", "\n")
+confusionMatrixOnReplacedTrain <- confusionMatrix(table(pred_in_trainingReplace, trainReplace$V1, dnn=c("Predicted","Actual")))
+
+confusionMatrixOnReplacedTrain
+
+# Get the accuracy of the classifier both in-training and in-test
+accuracyOnTestReplaced <- confusionMatrixOnReplacedTest$overall[1]
+accuracyOnTrainReplaced <- confusionMatrixOnReplacedTrain$overall[1]
+
+```
+```{r}
+cat("The accuracy for the missing values on the test data set is", accuracyOnTestMiss, ". The false positive =", confusionMatrixOnTestMiss$table[3], "\n")
+
+cat("The accuracy for the missing values on the train data set is", accuracyOnTrainMiss, ". The false positive =", confusionMatrixOnTrainMiss$table[3],"\n")
+
+cat("-----------------------------------------------------", "\n")
+
+cat("The accuracy for the replaced values on the test data set is", accuracyOnTestReplaced, ". The false positive =", confusionMatrixOnReplacedTest$table[3], "\n")
+
+cat("The accuracy for the replaced values on the train data set is", accuracyOnTrainReplaced, ". The false positive =", confusionMatrixOnReplacedTrain$table[3], "\n")
+
+```
+
+The accuracy for the missing values on the test data set is slightly smaller than the accuracy for the replaced values on the test data set. After we use mode to replace missing value, the accuracy for test data set slightly increases.
+
+The false positive for for the missing values on the test data set is bigger than the false positive for the replaced values on the test data set. After we use mode to replace missing value, the false positive for test data set decreases.
+
+After we use mode to replace missing value, the model perform better here.
+
+
+### 2.3 Data analysis based on
+
+```{r}
+# Load the data
+urlYacht <-  "https://archive.ics.uci.edu/ml/machine-learning-databases/00243/yacht_hydrodynamics.data"
+
+df.Yacht <- read.csv(urlYacht, 
+                     header = FALSE,
+                     sep = " ",
+                     as.is = T, 
+                     stringsAsFactors = TRUE,
+                     col.names = c('LongPos_COB', 'Prismatic_Coeff', 'Len_Disp_Ratio', 'Beam_Draut_Ratio', 'Length_Beam_Ratio','Froude_Num', 'Residuary_Resistance'))
+
+df.Yacht <- na.omit(df.Yacht)
+head(df.Yacht)
+
+```
+
+
+```{r}
+# Data processing
+set.seed(1)
+ind <- createDataPartition(df.Yacht$Residuary_Resistance, p = 0.8, list = FALSE)
+trainYacht <- df.Yacht[ind,]
+testYacht <- df.Yacht[-ind,]
+
+# Data training
+lm_fit <- lm(Residuary_Resistance ~ ., data = trainYacht)
+lm_fit
+```
+
+```{r}
+predYacht <- predict(lm_fit, testYacht)
+# predYacht
+```
+
+
+```{r}
+# What are the R2 training MSE/RMSE and results?
+
+RSS_Original_Model <- c(crossprod(lm_fit$residuals))
+cat("\nRSS_Original_Model =", RSS_Original_Model)
+
+MSE_Original_Model <- RSS_Original_Model / length(lm_fit$residuals)
+cat("\nMSE_Original_Model =", MSE_Original_Model)
+
+RMSE_Original_Model <- sqrt(MSE_Original_Model)
+cat("\nRMSE_Original_Model =", RMSE_Original_Model)
+
+R2_Original_Model <- summary(lm_fit)$r.squared
+cat("\nR2_Original_Model =", R2_Original_Model)
+```
+
+```{r}
+summary(lm_fit)
+```
+
+```{r}
+print(lm_fit)
+```
+```{r}
+# use the caret package to perform a bootstrap from the full sample dataset with N=1000 samples for fitting a linear model
+
+trainCon <- trainControl(method = "boot", number = 1000)
+
+lm_model <- train(Residuary_Resistance ~ ., data = df.Yacht, trControl = trainCon, method = "lm")
+predYacht2 <- predict(lm_model, testYacht)
+
+# predYacht2
+print(lm_model)
+```
+
+```{r}
+plot(hist(resid(lm_fit)))
+```
+
+```{r}
+plot(hist(resid(lm_model)))
+```
+
+```{r}
+smy_lm_model <- summary(lm_model)
+smy_lm_model
+
+```
+
+```{r}
+cat("-------------Boostrap Model -----------", "\n")
+RSS_Boostrap <- c(crossprod(smy_lm_model$residuals))
+cat("\nRSS_Boostrap =", RSS_Boostrap)
+
+MSE_Boostrap <- RSS_Boostrap / length(smy_lm_model$residuals)
+cat("\nMSE_Boostrap =", MSE_Boostrap)
+
+RMSE_Boostrap <- sqrt(MSE_Boostrap)
+cat("\nRMSE_Boostrap =", RMSE_Boostrap)
+
+R2_Boostrap <- smy_lm_model$r.squared
+cat("\nR2_Boostrap =", R2_Boostrap, "\n")
+
+cat("\n")
+
+cat("-------------Original Model -----------", "\n")
+cat("\nRSS_Original_Model =", RSS_Original_Model)
+cat("\nMSE_Original_Model =", MSE_Original_Model)
+cat("\nRMSE_Original_Model =", RMSE_Original_Model)
+cat("\nR2_Original_Model =", R2_Original_Model)
+
+```
+How do these values compare to the basic model? How does the performance on the test set for the original and boostrap model compare?
+
+After perform a bootstrap from the full sample dataset with N=1000 samples for fitting a linear model: MSE, RMSE, R2 become bigger than the original MSE. As we know that the lower the RMSE(Root Mean Square Error), the better a given model is able to “fit” a dataset. For MSE, the lower the value the better. Hence, after perform a bootstrap from the full sample dataset with N=1000 samples for fitting a linear model, it fits worse. The original model performs better.
+
+
+#### 2.4 Data analysis based on
+
+```{r}
+# Load the German Credit Data sample dataset from the UCI Machine Learning Repository
+
+urlGerman <-  "https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data"
+
+df.German <- read.csv(urlGerman, 
+                      header = FALSE,
+                      sep = " ",
+                      as.is = T, 
+                      stringsAsFactors = TRUE)
+
+# df.Yacht <- na.omit(df.Yacht)
+head(df.German)
+
+GermanCredit <- df.German
+```
+
+```{r}
+set.seed(1234)
+GermanCredit$V21 <- as.factor(GermanCredit$V21)
+
+gcredit<- createDataPartition(GermanCredit$V21, p = 0.8, list = FALSE)
+gcredit_train <- GermanCredit[ gcredit, ]
+gcredit_test <- GermanCredit [-gcredit,]
+```
+
+```{r}
+xtabs(~V21, data = gcredit_train)
+```
+
+```{r}
+# Fit logistic regression model
+gcredit_model <- glm(V21 ~ ., data = gcredit_train, family = "binomial")
+fit <- ifelse(gcredit_model$fitted.values > 0.5, 2, 1)
+fit <- factor(fit)
+
+gcredit_cMatrix <- confusionMatrix(fit, gcredit_train$V21)
+gcredit_cMatrix
+```
+What are the training Precision/Recall and F1 results?
+```{r}
+cat("Here are the training Precision/Recall and F1 results", "\n")
+cat("--------------------------------------------")
+
+precision <- gcredit_cMatrix$byClass['Pos Pred Value']
+cat("\nPrecision =", precision)
+
+recall <- gcredit_cMatrix$byClass['Sensitivity']
+cat("\nrecall =", recall)
+
+f_measure <- 2 * ((precision * recall) / (precision + recall))
+cat("\nF_measure =", f_measure)
+
+```
+
+```{r}
+step_1<- trainControl(method = "cv", number = 10)
+
+step_2 <- train(as.factor(V21) ~ ., data = GermanCredit, method="glm", trControl = step_1)
+pred <- predict(step_2, newdata = gcredit_train)
+# pred
+```
+
+
+```{r}
+conMtrix <- confusionMatrix(gcredit_train$V21, pred)
+conMtrix
+```
+
+Obtain cross-validated training Precision/Recall and F1 values
+
+```{r}
+cat("Here are the training Precision/Recall and F1 results via cross-validated training", "\n")
+cat("--------------------------------------------")
+
+precision <- conMtrix$byClass['Pos Pred Value']
+cat("\nPrecision =", precision)
+
+recall <- conMtrix$byClass['Sensitivity']
+cat("\nrecall =", recall)
+
+f1 <- conMtrix$byClass['F1']
+cat("\nf1 =", f1)
+```
+
+How do these values compare to the original fit? 
+
+With cross validation, Precision become bigger than the original, recall become smaller than the original, f1 become smaller than the original. As we know that the higher the precision and recall, the higher the F1-score. F1-score ranges between 0 and 1. The closer it is to 1, the better the model. The model performs slightly worse with cross validation on tain data set.
+
+How does the performance on the test set for the original and cross-validated model compare?
+
+```{r}
+gcredit_model <- glm(V21 ~ ., data = gcredit_test, family = "binomial")
+fit <- ifelse(gcredit_model$fitted.values > 0.5, 2, 1)
+fit <- factor(fit)
+
+test_gcredit_cMatrix <- confusionMatrix(fit, gcredit_test$V21)
+test_gcredit_cMatrix
+
+```
+
+
+```{r}
+cat("Here are the training Precision/Recall and F1 results on test", "\n")
+cat("--------------------------------------------")
+
+precision <- test_gcredit_cMatrix$byClass['Pos Pred Value']
+cat("\nPrecision =", precision)
+
+recall <- test_gcredit_cMatrix$byClass['Sensitivity']
+cat("\nrecall =", recall)
+
+f1 <- test_gcredit_cMatrix$byClass['F1']
+cat("\nf1 =", f1)
+```
+
+
+```{r}
+step_1<- trainControl(method = "cv", number = 10)
+
+step_2 <- train(as.factor(V21) ~ ., data = GermanCredit, method="glm", trControl = step_1)
+pred <- predict(step_2, newdata = gcredit_test)
+# pred
+
+test_conMtrix_cross <- confusionMatrix(gcredit_test$V21, pred)
+test_conMtrix_cross
+```
+```{r}
+cat("Here are the training Precision/Recall and F1 results on test with cross validation", "\n")
+cat("--------------------------------------------")
+
+precision <- test_conMtrix_cross$byClass['Pos Pred Value']
+cat("\nPrecision =", precision)
+
+recall <- test_conMtrix_cross$byClass['Sensitivity']
+cat("\nrecall =", recall)
+
+f1 <- test_conMtrix_cross$byClass['F1']
+cat("\nf1 =", f1)
+```
+
+As we see that the Precision become bigger, recall and f1 become smaller with cross validation. The model performs slightly worse with cross validation on test data set with cross validation.
+
+https://rpubs.com/dipenc007/950399
+
+https://www.coursehero.com/tutors-problems/Computer-Science/33762418-Load-the-German-Credit-Data-sample-dataset-from-the-UCI-Machine/
+

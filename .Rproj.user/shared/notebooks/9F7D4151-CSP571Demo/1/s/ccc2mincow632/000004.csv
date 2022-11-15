@@ -1,0 +1,5 @@
+"0","predictions <- data.frame(pred = predict(fit2, data.frame(lstat=1:30)))"
+"0",""
+"0","ggplot(Boston, aes(x = lstat, y = medv)) + geom_point(alpha = 0.5) +"
+"0","geom_line(data = predictions, aes(x = 1:dim(predictions)[1], y = pred), color = ""red"") +"
+"0","geom_abline(intercept = intercept, slope = slope, color = ""blue"")"

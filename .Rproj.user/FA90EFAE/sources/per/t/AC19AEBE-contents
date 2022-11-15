@@ -1,0 +1,299 @@
+---
+title: "Data Analysis Practice 01 | R Programming | 2022 Fall"
+author: "Lilian"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+  html_document:
+    toc: yes
+    df_print: paged
+---
+
+# Clean environment & Load Libraries
+
+```{r}
+# Clean environment
+rm(list=ls())
+
+# Set the working Directory
+setwd("D:/WorkSpace/RWorkSpace/HWDemo")
+
+# Load libraries
+library(tidyverse)
+library(datasets)
+library('ggplot2') 
+library (MASS)
+library (ISLR)
+
+```
+
+# 2.1 Data analysis based on the iris sample dataset
+
+Load the iris sample dataset into R using a dataframe (it is a built-in dataset).
+Create a boxplot of each of the 4 features, and highlight the feature with the largest empirical IQR. Calculate the parametric standard deviation for each feature - do your results agree with the empirical values? Use the ggplot2 library from CRAN to create a colored boxplot for each feature, with a box-whisker per flower species. Which flower type exhibits a significantly different Petal
+Length/Width once it is separated from the other classes?
+
+```{r}
+# Load the iris sample dataset into R
+iris = data.frame(iris)
+head(iris)
+
+str(iris)
+```
+
+```{r}
+# Create a boxplot of each of the 4 features
+# boxplot(iris, xlab = "Attributes", ylab = "Values", main = "Iris")
+ggplot(data=stack(iris), mapping = aes(x=ind, y = values)) + geom_boxplot()
+
+```
+
+```{R}
+# IQR of each of the 4 features
+SepalLength <- iris$Sepal.Length
+SepalWidth <- iris$Sepal.Width
+PetalLength <- iris$Petal.Length
+PetalWidth <- iris$Petal.Width
+
+cat("\nIQR of SepalLength: ", IQR(SepalLength))
+cat("\nIQR of SepalWidth: ", IQR(SepalWidth))
+cat("\nIQR of PetalLength: ", IQR(PetalLength))
+cat("\nIQR of PetalWidth: ", IQR(PetalWidth))
+cat("\nThe feature with the largest empirical IQR is PetalLength = 3.5")
+```
+
+```{r}
+# Highlight the feature with the largest empirical IQR
+cat("\nHighlight the feature with the largest empirical IQR.")
+
+boxplot(iris$Petal.Length, main="The Largest IQR = 3.5", xlab="Petal Length", ylab ="Value", col="green" )
+```
+
+```{r}
+par(mfrow=c(2,2))
+
+# Calculate the parametric standard deviation
+cat("The standard deviation of iris SepalLength is: ", sd(SepalLength), "\n")
+
+cat("The standard deviation of iris SepalWidth is: ", sd(SepalWidth), "\n")
+
+cat("The standard deviation of iris PetalLength is: ", sd(PetalLength), "\n")
+
+cat("The standard deviation of iris PetalWidth is: ", sd(PetalWidth), "\n")
+
+ggplot(iris, aes(x=Petal.Length)) +
+geom_histogram(color="black", fill="white", binwidth = .8)
+
+ggplot(iris, aes(x=Petal.Width)) +
+geom_histogram(color="black", fill="white", binwidth = .2)
+```
+Do your results agree with the empirical values?
+
+My answer:
+
+The results don't agree with the empirical values. The standard deviation values shows that Petal Length and Petal Width don't follow a normal distribution.
+
+```{r}
+par(mfrow=c(2,2))
+
+# Use the ggplot2 library from CRAN to create a colored boxplot for each feature, with a box-whisker per flower species.
+ggplot(data = iris) + geom_boxplot(mapping = aes(x = Species, y = Petal.Length, color = Species))
+
+ggplot(data = iris) + geom_boxplot(mapping = aes(x = Species, y = Petal.Width, color = Species))
+
+ggplot(data = iris) + geom_boxplot(mapping = aes(x = Species, y = Sepal.Length, color = Species))
+
+ggplot(data = iris) + geom_boxplot(mapping = aes(x = Species, y = Sepal.Width, color = Species))
+```
+
+Which flower type exhibits a significantly different Petal Length/Width once it is separated from the other classes??
+
+```{r}
+ggplot(data=iris) + geom_boxplot(mapping = aes(x=Petal.Length, y=Petal.Width, color = Species))
+```
+overlap:similar range
+
+My answer:
+The range and IQR of setosa between the Petal Length and Petal Width is significantly different. 
+
+# 2.2 Data analysis based on the trees sample dataset
+Load the trees sample dataset into R using a dataframe (it is a built-in dataset), and produce a 5-number summary of each feature. Create a histogram of each variable - which variables appear to be normally distributed based on visual inspection? Do any variables exhibit positive or negative skewness? Install the moments library from CRAN use the skewness function to calculate the skewness of each variable. Do the values agree with the visual inspection?
+
+## Load Data
+```{r}
+# Load the trees sample dataset into R and produce a 5-number summary of each feature
+trees = data.frame(trees)
+trees
+
+str(trees)
+```
+## Data Processing
+### produce a 5-number summary of each feature
+
+```{R}
+# produce a 5-number summary of each feature
+cat("A five number summary of Girth is", fivenum(trees$Girth), "\n") 
+
+cat("A five number summary of Height is", fivenum(trees$Height), "\n") 
+
+cat("A five number summary of Height is", fivenum(trees$Volume), "\n") 
+```
+### Output a 5-number summary of each feature in detail
+```{r}
+cat("Output a 5-number summary of each feature in detail： ", "\n")
+
+cat("summary(trees$Girth)： ", "\n")
+summary(trees$Girth)
+
+cat("summary(trees$Height): ", "\n")
+summary(trees$Height)
+
+cat("summary(trees$Volume): ", "\n")
+summary(trees$Volume)
+```
+
+### Create a histogram of each variable 
+```{r}
+# Create a histogram of each variable 
+# which variables appear to be normally distributed based on visual inspection?
+ggplot(trees, aes(x = Girth)) + geom_histogram(color = "black", fill = "grey", binwidth = 1)
+
+ggplot(trees, aes(x = Height)) + geom_histogram(color = "black", fill = "blue", binwidth = 1)
+
+ggplot(trees, aes(x = Volume)) + geom_histogram(color = "black", fill = "green", binwidth = 3)
+```
+## Data Analysis 
+
+```{r}
+# Do any variables exhibit positive or negative skewness?
+# Do the values agree with the visual inspection?
+
+# install.packages("moments")
+library("moments")
+
+cat("\nSkewness of Girth:",skewness(trees$Girth))
+
+cat("\nSkewness of Height:",skewness(trees$Height))
+
+cat("\nSkewness of Height:",skewness(trees$Volume))
+```
+My analysis:
+
+Compared to the other variables, "Height" appear to be normally distributed. It's close to a good normal distribution.
+
+"Girth" and "Volume" exhibit positive skewness. "Height" appears to be slightly negatively skewed. The values correspond with the visual histogram inspection.
+
+# 2.3 Data analysis based on the auto-mpg sample dataset
+## Load Data
+```{r}
+# Load the auto-mpg sample dataset from the UCI Machine Learning Repository (auto-mpg.data) into R using a dataframe 
+
+url = "https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data"
+
+df <- read.csv(file = url, 
+               header = FALSE, 
+               sep = "", 
+               as.is = T, 
+               stringsAsFactors = F, 
+               col.names =  c("mpg","cylinders","displacement","horsepower","weight","acceleration", "model year", "origin", "car name"))
+
+str(df)
+head(df)
+```
+## Data Processing
+```{r}
+# Use the as.numeric casting function to obtain the column as a numeric vector, 
+df$horsepower <-  as.numeric(df$horsepower)
+# df$horsepower
+
+horsePowerBase <- df$horsepower
+
+# Orignial Mean
+cat("Orignial Mean is", mean(df$horsepower, na.rm = TRUE), "\n")
+
+horse_NA_median <- df$horsepower
+
+# Replace all NA values with the median
+horse_NA_median[which(is.na(df$horsepower))] <- median(df$horsepower, na.rm =TRUE)
+```
+
+```{r}
+# Mean when NA = median
+cat("Mean when NA = median is", mean(horse_NA_median))
+
+# How does this affec the value obtained for the mean vs the original mean when the records were ignored?
+```
+The original mean is 104.4694 which is a little greater than the mean after we use the median to fill in NA values.
+
+#2.4 Data analysis based on the Boston sample dataset
+## Load Data
+```{r}
+# Load the Boston sample dataset into R using a dataframe
+Boston <- data.frame(Boston)
+head(Boston)
+names(Boston)
+?Boston
+```
+## Fit a regression 
+```{r}
+# Use lm to fit a regression between medv and lstat - plot the resulting fit and show a plot of fitted values vs. residuals
+
+# medv: median value of owner-occupied homes in \$1000s.
+# lstat: lower status of the population (percent).
+lm.fit <- lm(medv~lstat, data=Boston )
+lm.fit
+
+par(mfrow = c(2,2))
+# par(mfrow = c(1,1))
+plot(lm.fit)
+
+summary(lm.fit)
+```
+## Obtain confidence intervals
+```{r}
+# Use the predict function to calculate values response values for lstat of 5, 10, and 15 - obtain confidence intervals as well as prediction intervals for the results
+
+# lstat: lower status of the population (percent).
+cat("Calculate values response values for lstat of 5, 10, and 15 - obtain confidence intervals", "\n")
+predict(lm.fit, data.frame(lstat=c(5, 10, 15)), interval ="confidence")
+
+cat("Calculate values response values for lstat of 5, 10, and 15 - obtain prediction intervals", "\n")
+predict(lm.fit, data.frame(lstat=c(5, 10, 15)), interval ="prediction")
+```
+
+## Modify the regression
+```{r}
+# Modify the regression to include lstat2 (as well lstat itself) and compare the R2 between the linear and non-linear fit - use ggplot2 and stat smooth to plot the relationship.
+
+intercept <- coef(lm.fit)[1]
+slope <- coef(lm.fit)[2]
+
+fit2 <- lm(medv ~ lstat + I(lstat ^2), data=Boston)
+summary(fit2)
+```
+## Predict & Data Analysis
+```{r}
+predictions <- data.frame(pred = predict(fit2, data.frame(lstat=1:30)))
+
+ggplot(Boston, aes(x = lstat, y = medv)) + geom_point(alpha = 0.5) +
+geom_line(data = predictions, aes(x = 1:dim(predictions)[1], y = pred), color = "red") +
+geom_abline(intercept = intercept, slope = slope, color = "blue")
+
+anova(fit2, lm.fit)
+```
+My answer:
+
+Yes. There is a possible non-linear relationship between the predictor and response.
+
+Confidence intervals and prediction intervals are not same. The "upr" of prediction intervals is apparently much wider than the confidence intervals. It expresses more uncertainty. When the "lstat" is over 30, we see it predicts negative response values. 
+
+According to the outputs of summary() and the plots, we see:
+
+(1) the R-squared value of the quadratic model is higher than the R-squared of the linear model. The R square value close to 1 indicates that the model explains a large portion of the variance in the response variable.
+
+(2) the residual standard error of the quadratic model is smaller than the residual standard error of the linear model. The smaller the residual standard error, the better a regression model fits a data set. 
+
+(3) The read spline on the plot appear to fit data better.
+
+Hence, the non-linear fit is better than the linear fit.

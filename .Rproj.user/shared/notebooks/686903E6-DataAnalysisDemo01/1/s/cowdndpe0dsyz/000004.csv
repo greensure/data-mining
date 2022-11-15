@@ -1,0 +1,2 @@
+"0",""
+"0","ggplot(trees, aes(x = Height)) + geom_histogram(color = ""black"", fill = ""blue"", binwidth = 1)"
